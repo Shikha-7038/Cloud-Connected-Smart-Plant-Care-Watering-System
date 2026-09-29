@@ -6,3 +6,4 @@ pydantic>=2.6
 PyJWT>=2.8
 python-dotenv>=1.0
 requests>=2.31            # sensor simulator
+psycopg[binary]>=3.1
