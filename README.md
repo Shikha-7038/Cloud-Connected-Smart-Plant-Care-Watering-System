@@ -1,5 +1,16 @@
 # Cloud-Connected Smart Plant Care & Watering System
 
+## 🌐 Live Demo
+- **Dashboard:** https://cloud-connected-smart-plant-care-wa.vercel.app
+- **Backend API docs:** https://plant-care-backend-s9hl.onrender.com/docs
+
+> **Note:** the backend runs on Render's free tier, which sleeps after ~15
+> minutes of inactivity. The first request after a period of inactivity can
+> take 30-60 seconds while it wakes up — this is normal, not a bug. Register
+> your own account on the live dashboard to try it (it's a shared live
+> database, so please don't rely on any account/device you create there for
+> anything important).
+
 ## Overview
 A cloud-hosted platform that monitors soil moisture, temperature, humidity
 and light for one or more plants, waters them automatically when needed,
@@ -145,7 +156,32 @@ the cloud side needs no changes.
 
 ## Cloud Deployment
 See `docs/DEPLOYMENT.md` (free-tier steps + enterprise-architecture mapping
-across AWS/Azure/GCP).
+across AWS/Azure/GCP). This project is deployed using that exact path —
+frontend on Vercel, backend on Render, database on Supabase (see the Live
+Demo links above).
+
+### Deployment gotchas encountered (and fixed) in this deployment
+- **Supabase's pooler connection string can select the `psycopg` (v3) driver
+  even with a plain `postgresql://` URL**, while this project's
+  `requirements.txt` originally only included `psycopg2-binary`. Fix: add
+  `psycopg[binary]>=3.1` to `requirements.txt` alongside `psycopg2-binary` so
+  either driver resolves correctly.
+- **CORS must match exactly.** Render's `CORS_ORIGINS` environment variable
+  has to equal the deployed frontend origin character-for-character — no
+  trailing slash, correct `https://` scheme. A mismatch shows up as a
+  browser console error ("blocked by CORS policy ... No
+  'Access-Control-Allow-Origin' header") when registering/logging in from
+  the deployed frontend, even though the backend itself is reachable.
+- **Vite environment variables are baked in at build time.** Changing
+  `VITE_API_URL` in Vercel's project settings does nothing until you trigger
+  a new deployment (Vercel → Deployments → Redeploy) — the already-built
+  static files still point at whatever `VITE_API_URL` was during the last
+  build.
+- **`/docs` (Swagger UI) has no visible "Authorize" button** unless the
+  backend declares the bearer-token dependency as a proper FastAPI security
+  scheme (`fastapi.security.HTTPBearer`) rather than reading the
+  `Authorization` header manually — this project's `backend/utils/deps.py`
+  uses `HTTPBearer` for exactly this reason.
 
 ## Testing
 See `docs/TESTING.md`. Run with `pytest -v`.
@@ -162,9 +198,6 @@ gateways, serverless functions, time-series databases, and queues.
 `GET /api/devices/{id}/analytics` returns average/min/max moisture,
 average temperature/humidity, watering-event count, daily watering
 frequency, estimated water used (ml), device uptime %, and plant health.
-
-## Screenshots
-See `docs/SCREENSHOT_CHECKLIST.md`.
 
 ## Results
 The full simulated cycle (healthy → drying → threshold crossed → auto
